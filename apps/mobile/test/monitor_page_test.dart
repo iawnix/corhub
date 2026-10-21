@@ -111,6 +111,75 @@ void main() {
     expect(find.text('Running'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
   });
+  testWidgets(
+    'partial summary and history are terminal and details stay readable',
+    (tester) async {
+      final gateway = FakeMonitor();
+      gateway.task = {
+        ...gateway.task,
+        'state': 'partial',
+        'completion_outcome': 'partial',
+      };
+      await tester.pumpWidget(app(gateway));
+      await tester.pumpAndSettle();
+      expect(find.text('Partially completed'), findsOneWidget);
+      expect(find.byKey(const ValueKey('monitor-task-control')), findsNothing);
+      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.pumpAndSettle();
+      expect(find.text('Cancel task'), findsNothing);
+      await tester.tap(find.text('History'));
+      await tester.pumpAndSettle();
+      expect(find.text('Compare conformers'), findsOneWidget);
+      await tester.tap(find.text('Compare conformers'));
+      await tester.pumpAndSettle();
+      expect(find.text('Compare energies'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+  testWidgets('finished jobs remain accessible when active preview is empty', (
+    tester,
+  ) async {
+    final gateway = FakeMonitor()..activeJobs = [];
+    await tester.pumpWidget(app(gateway));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Jobs').first);
+    await tester.pumpAndSettle();
+    expect(find.text('No active jobs'), findsOneWidget);
+    await tester.tap(find.text('All jobs'));
+    await tester.pumpAndSettle();
+    expect(gateway.lastJobScope, 'task-a');
+    expect(find.text('job-ended'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+  testWidgets('controller errors show attention instead of in progress', (
+    tester,
+  ) async {
+    final gateway = FakeMonitor()..continuation = 'error';
+    gateway.task = {...gateway.task, 'state': 'active'};
+    await tester.pumpWidget(app(gateway));
+    await tester.pumpAndSettle();
+    expect(find.text('In progress'), findsNothing);
+    expect(find.text('Needs attention'), findsWidgets);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+  test(
+    'summary accepts absent schema but detail requires current task schema',
+    () {
+      final raw = FakeMonitor().task;
+      expect(MonitorTask.summary(raw).id, 'task-a');
+      expect(() => MonitorTask(raw), throwsFormatException);
+      expect(
+        () => MonitorTask({...raw, 'schema_version': 'coragent-user-task/1'}),
+        throwsFormatException,
+      );
+      expect(
+        MonitorTask({...raw, 'schema_version': 'coragent-user-task/2'}).id,
+        'task-a',
+      );
+    },
+  );
   test(
     'uncertain control survives navigation and retries unchanged identity/revision',
     () async {
@@ -153,7 +222,6 @@ void main() {
 
 class FakeMonitor implements HostMonitorGateway {
   Map<String, Object?> task = {
-    'schema_version': 'coragent-user-task/2',
     'user_task_id': 'task-a',
     'title': 'Compare conformers',
     'state': 'waiting',
@@ -161,6 +229,11 @@ class FakeMonitor implements HostMonitorGateway {
     'objective': 'Compare energies',
     'criteria': [],
   };
+  List<Map<String, Object?>> activeJobs = [
+    {'job_id': 'job-a', 'state': 'running'},
+  ];
+  String? lastJobScope;
+  String continuation = 'waiting';
   final mutations = <(String, Map<String, Object?>)>[];
   bool loseReceipt = false, conflict = false;
   @override
@@ -185,16 +258,41 @@ class FakeMonitor implements HostMonitorGateway {
     expect(sessionId, 'session-a');
     if (method == 'monitor/overview') {
       return {
-        'schema_version': 'coragent-monitor/1',
+        'schema_version': 'coragent-monitor/2',
         'task': Map.of(task),
         'jobs': {
-          'items': [
-            {'job_id': 'job-a', 'user_task_id': 'task-a', 'state': 'running'},
-          ],
-          'next_cursor': null,
+          'scope': 'task',
+          'counts': {'running': 1, 'queued': 0, 'total': 1},
+          'active': activeJobs,
+          'active_omitted': 0,
         },
-        'task_controller': {},
+        'execution': {'state': 'running', 'run_id': 'run-a'},
+        'continuation': {
+          'state': {'partial', 'completed', 'cancelled'}.contains(task['state'])
+              ? 'idle'
+              : continuation,
+        },
         'updated_at': '2026-10-10T00:00:00Z',
+      };
+    }
+    if (method == 'monitor/tasks') {
+      return {
+        'items': [Map.of(task)],
+        'next_cursor': null,
+      };
+    }
+    if (method == 'monitor/task/read') {
+      return {
+        'task': {...task, 'schema_version': 'coragent-user-task/2'},
+      };
+    }
+    if (method == 'monitor/jobs') {
+      lastJobScope = params['user_task_id'] as String?;
+      return {
+        'items': [
+          {'job_id': 'job-ended', 'state': 'succeeded'},
+        ],
+        'next_cursor': null,
       };
     }
     mutations.add((method, Map.of(params)));

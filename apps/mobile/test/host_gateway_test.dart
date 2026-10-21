@@ -456,6 +456,49 @@ void main() {
     expect((snapshot.messages[1]! as Map)['content'], 'flat message');
   });
 
+  test(
+    'runtime context filtering preserves receipts and quoted user text',
+    () async {
+      final server = _Server();
+      final gateway = HostGateway(_settings, client: server.client());
+      addTearDown(gateway.close);
+      const context =
+          '<research_context origin="runtime">\n{}\n</research_context>';
+      server.onRequest = (request) {
+        server.respond(request, {
+          ..._read(nestedCursor: true),
+          'snapshot': {
+            ..._snapshot(),
+            'messages': [
+              {'role': 'user', 'timestamp': 0, 'content': context},
+              {'role': 'user', 'timestamp': 123, 'content': context},
+              {
+                'type': 'message',
+                'message': {
+                  'role': 'user',
+                  'timestamp': 0,
+                  'content':
+                      '<runtime_control origin="runtime">\n{}\n</runtime_control>',
+                },
+              },
+              {'role': 'user', 'timestamp': 456, 'content': 'real input'},
+              {'role': 'assistant', 'timestamp': 0, 'content': context},
+            ],
+            'receipts': [
+              {'message_index': 1, 'client_message_id': 'quoted'},
+              {'message_index': 3, 'client_message_id': 'real'},
+            ],
+          },
+        });
+      };
+      final snapshot = await gateway.getMessages('ts_001', 'session-1');
+      expect(snapshot.messages, hasLength(3));
+      expect((snapshot.messages[0]! as Map)['clientMessageId'], 'quoted');
+      expect((snapshot.messages[1]! as Map)['clientMessageId'], 'real');
+      expect((snapshot.messages[2]! as Map)['role'], 'assistant');
+    },
+  );
+
   test('uses the Native Host model field when selecting a model', () async {
     final server = _Server();
     final gateway = HostGateway(_settings, client: server.client());

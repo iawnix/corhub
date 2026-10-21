@@ -3,6 +3,29 @@
 Release versions follow `MAJOR.MINOR.PATCH+BUILD`. Unreleased source is not an
 installable GitHub release. See [versioning](docs/versioning.md).
 
+## 0.21.0+65
+
+- Adapt Monitor to CoRAgent's `coragent-monitor/2`: consume bounded task
+  summaries, scoped active Job previews, and continuation status. Full and
+  completed Job records remain accessible through the paginated Job list.
+- Support `partial` task outcomes without offering controls for ended tasks.
+  Task details still require `coragent-user-task/2`.
+- Omit runtime research-context carriers from chat while preserving user text
+  and message receipt indices. Host/Link identity and pairing are unchanged.
+- Requires CoRAgent main with Monitor v2 (introduced in `d243385a`) and partial
+  task outcomes (`b64ba293`); the package version alone does not identify these
+  changes. Monitor v1 is not supported by this client revision.
+- 适配新版 Monitor 摘要、作业范围与继续执行状态，支持“部分完成”终态，
+  保留已结束作业的查看入口；聊天隐藏运行时研究上下文并保留消息回执对应关系。
+- Upgrade CoRAgent to current main before using this client. Existing
+  `coragent-host/2` / `coragent-link.v1` pairings remain valid; the Android
+  application ID and production signing identity are preserved for in-place upgrades.
+- Validation: version and release-tool checks, formatting, static analysis and
+  all 23 independent Flutter test files passed. Deterministic local integration
+  with the real Host/Pi passed and test services were cleaned up. Official APKs
+  and AAB are built and verified from the release tag by GitHub Actions.
+  Android/iOS physical-device acceptance has not been performed.
+
 ## 0.20.0+64
 
 - **简约任务监控**：在原聊天界面打开 Monitor，支持 Task Controller 暂停、恢复、

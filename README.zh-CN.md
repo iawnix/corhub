@@ -8,7 +8,9 @@ CoRHub 是 [CoRAgent](https://github.com/iawnix/coragent) 的 Android/iOS
 Flutter 客户端。在手机上访问与终端相同的研究工作区和会话、发送消息、切换模型、
 查看工具输出和管理任务监控。任务执行与持久化会话历史保留在 CoRAgent 服务端。
 
-产品名称统一为：客户端 **CoRHub**，科研智能体 **CoRAgent**。本源码配套 CoRAgent 0.19 的不兼容身份切换，服务端和客户端需要一起更新，所有设备重新配对。
+产品名称统一为：客户端 **CoRHub**，科研智能体 **CoRAgent**。从旧身份协议升级到 CoRAgent 0.19 时，服务端和客户端需要一起更新，所有设备重新配对。
+
+本源码要求 CoRAgent Monitor v2（`coragent-monitor/2`），支持部分完成任务。部分旧 0.19.0 安装不包含这些变更，请同步更新服务端和客户端；已有 CoRAgent 配对继续有效。
 
 ## 安装和连接
 

@@ -10,9 +10,17 @@ extension HostMonitorLocalizations on AppLocalizations {
     'blocked' || 'degraded' => monitorBlocked,
     'completing' => monitorCompleting,
     'completed' => monitorCompleted,
+    'partial' => monitorPartial,
+    'stopped' => monitorStopped,
+    'idle' => monitorIdle,
+    'retrying' => monitorRetrying,
     'cancelled' || 'canceled' => monitorCancelled,
     'running' => monitorRunning,
-    'queued' || 'pending' || 'submitted' => monitorQueued,
+    'created' ||
+    'held' ||
+    'queued' ||
+    'pending' ||
+    'submitted' => monitorQueued,
     'failed' || 'error' => monitorFailed,
     'succeeded' || 'success' => monitorSucceeded,
     'cancel_requested' || 'cancelling' => monitorCancelPending,

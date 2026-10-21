@@ -11,8 +11,15 @@ List<Map<String, Object?>> monitorItems(Object? value) {
 }
 
 class MonitorTask {
-  MonitorTask(this.raw) {
-    if (raw['schema_version'] != 'coragent-user-task/2' ||
+  MonitorTask(Map<String, Object?> raw) : this._(raw, summary: false);
+  MonitorTask.summary(Map<String, Object?> raw) : this._(raw, summary: true);
+
+  MonitorTask._(this.raw, {required bool summary}) {
+    // Overview and list responses use bounded task projections and omit the
+    // durable task schema version; detail/control responses include it.
+    if ((summary
+            ? raw['schema_version'] != null
+            : raw['schema_version'] != 'coragent-user-task/2') ||
         raw['user_task_id'] is! String ||
         raw['revision'] is! int ||
         revision < 1 ||
@@ -27,6 +34,7 @@ class MonitorTask {
     'blocked',
     'completing',
     'completed',
+    'partial',
     'cancelled',
   };
   final Map<String, Object?> raw;
@@ -36,7 +44,8 @@ class MonitorTask {
   String get state => raw['state'] as String? ?? '';
   String get objective => raw['objective'] as String? ?? '';
   String? get reason => raw['reason'] as String?;
-  bool get terminal => state == 'completed' || state == 'cancelled';
+  bool get terminal =>
+      state == 'completed' || state == 'partial' || state == 'cancelled';
   String? get progress => raw['progress'] is Map
       ? (raw['progress'] as Map)['summary'] as String?
       : null;
@@ -55,6 +64,8 @@ class MonitorJob {
   String get state => raw['state'] as String;
   String? get taskId => raw['user_task_id'] as String?;
   bool get cancellable => const {
+    'created',
+    'held',
     'queued',
     'pending',
     'running',
@@ -67,21 +78,49 @@ class MonitorOverview {
   MonitorOverview(Map<String, Object?> raw)
     : task = raw['task'] == null
           ? null
-          : MonitorTask(monitorObject(raw['task'])),
+          : MonitorTask.summary(monitorObject(raw['task'])),
       jobs = monitorItems(
-        monitorObject(raw['jobs'])['items'],
+        monitorObject(raw['jobs'])['active'],
       ).map(MonitorJob.new).toList(),
-      nextCursor = monitorObject(raw['jobs'])['next_cursor'] as String?,
-      controller = monitorObject(raw['task_controller']),
+      jobScope = monitorObject(raw['jobs'])['scope'] as String? ?? 'session',
+      jobCounts = monitorObject(raw['jobs'])['counts'] is Map
+          ? monitorObject(monitorObject(raw['jobs'])['counts'])
+          : const {},
+      activeJobsOmitted =
+          monitorObject(raw['jobs'])['active_omitted'] as int? ?? 0,
+      continuationState =
+          monitorObject(raw['continuation'])['state'] as String?,
+      executionState = monitorObject(raw['execution'])['state'] as String?,
       updatedAt = DateTime.tryParse(raw['updated_at'] as String? ?? '') {
-    if (raw['schema_version'] != 'coragent-monitor/1') {
+    if (raw['schema_version'] != 'coragent-monitor/2') {
       throw const FormatException('Unsupported Monitor overview');
     }
   }
   final MonitorTask? task;
   final List<MonitorJob> jobs;
-  final String? nextCursor;
-  final Map<String, Object?> controller;
+  final String jobScope;
+  final Map<String, Object?> jobCounts;
+  final int activeJobsOmitted;
+  final String? continuationState;
+  final String? executionState;
+  int get totalJobs => jobCounts['total'] as int? ?? 0;
+
+  String get activityState => switch (continuationState) {
+    'idle' =>
+      task?.terminal == true
+          ? task!.state
+          : executionState == 'running'
+          ? 'active'
+          : 'idle',
+    'paused' || 'blocked' => continuationState!,
+    'error' || 'attention_required' => 'blocked',
+    'disabled' => executionState == 'running' ? 'active' : 'stopped',
+    'checking' => executionState == 'running' ? 'active' : '',
+    'retrying' => executionState == 'running' ? 'active' : 'retrying',
+    'waiting' => 'waiting',
+    'pending' || 'ready' => 'active',
+    _ => '',
+  };
   final DateTime? updatedAt;
 }
 

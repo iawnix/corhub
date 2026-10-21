@@ -490,5 +490,11 @@
   "monitorPartOf": "属于",
   "monitorRequires": "依赖",
   "monitorAlternative": "备选",
-  "monitorOpen": "进行中"
+  "monitorOpen": "进行中",
+  "monitorPartial": "部分完成",
+  "monitorStopped": "已停止",
+  "monitorIdle": "空闲",
+  "monitorRetrying": "等待重试",
+  "monitorAllJobs": "全部作业",
+  "monitorNoActiveJobs": "没有活动作业"
 }

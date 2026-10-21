@@ -11,8 +11,10 @@ output, and manage task monitors. Execution and durable session history stay
 on the CoRAgent server.
 
 The product names are **CoRHub** for the client and **CoRAgent** for the research
-agent. This source targets the breaking CoRAgent 0.19 identity cutover; both server
-and client must be updated and every device must pair again.
+agent. When upgrading from the legacy identity to CoRAgent 0.19, update both
+server and client and pair every device again.
+
+This source requires CoRAgent Monitor v2 (`coragent-monitor/2`) and supports partial task outcomes. Older 0.19.0 installations may lack these changes; update the server and client together. Existing CoRAgent pairing remains valid.
 
 ## Install and connect
 

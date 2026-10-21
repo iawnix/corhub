@@ -700,26 +700,44 @@ class HostGateway
   }
 
   static List<Object?> _messages(Map<String, Object?> snapshot) {
-    final messages = _list(snapshot['messages']).map((value) {
+    final messages = <Map<String, Object?>>[];
+    final visibleBySourceIndex = <int, int>{};
+    final sourceMessages = _list(snapshot['messages']);
+    for (
+      var sourceIndex = 0;
+      sourceIndex < sourceMessages.length;
+      sourceIndex++
+    ) {
+      final value = sourceMessages[sourceIndex];
       final entry = _object(value);
       // Pi Harness transcript entries wrap the ChatMessage in an envelope.
       // Keep accepting the older flat Host message shape as well.
+      late final Map<String, Object?> message;
       if (entry['type'] == 'message' && entry['message'] is Map) {
-        final message = _object(entry['message']);
+        message = _object(entry['message']);
         if (!message.containsKey('timestamp') && entry['timestamp'] is num) {
           message['timestamp'] = entry['timestamp'];
         }
-        return message;
+      } else {
+        message = entry;
       }
-      return entry;
-    }).toList();
+      // CoRAgent stores research_context/runtime_control as user-message
+      // carriers for the model. They are runtime observations, not messages
+      // authored by the phone user, and must not appear in the chat transcript.
+      if (_isInternalRuntimeMessage(message)) continue;
+      visibleBySourceIndex[sourceIndex] = messages.length;
+      messages.add(message);
+    }
     final receipts = snapshot['receipts'];
     if (receipts is List) {
       for (final raw in receipts) {
         if (raw is! Map) continue;
-        final index = raw['message_index'];
+        final sourceIndex = raw['message_index'];
         final id = raw['client_message_id'];
-        if (index is int &&
+        final index = sourceIndex is int
+            ? visibleBySourceIndex[sourceIndex]
+            : null;
+        if (index != null &&
             index >= 0 &&
             index < messages.length &&
             id is String &&
@@ -729,6 +747,20 @@ class HostGateway
       }
     }
     return messages;
+  }
+
+  static bool _isInternalRuntimeMessage(Map<String, Object?> message) {
+    if (message['role'] != 'user') return false;
+    final timestamp = message['timestamp'];
+    final content = message['content'];
+    if (timestamp != 0 || content is! String) return false;
+    // Recognize only complete runtime envelopes. User text quoting a tag with
+    // a normal timestamp remains visible; this is presentation, not authority.
+    return const ['research_context', 'runtime_control'].any(
+      (tag) =>
+          content.startsWith('<$tag origin="runtime">\n') &&
+          content.endsWith('\n</$tag>'),
+    );
   }
 
   String _revision(String workspace, String session) =>

@@ -2857,6 +2857,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open'**
   String get monitorOpen;
+
+  /// No description provided for @monitorPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Partially completed'**
+  String get monitorPartial;
+
+  /// No description provided for @monitorStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped'**
+  String get monitorStopped;
+
+  /// No description provided for @monitorIdle.
+  ///
+  /// In en, this message translates to:
+  /// **'Idle'**
+  String get monitorIdle;
+
+  /// No description provided for @monitorRetrying.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting to retry'**
+  String get monitorRetrying;
+
+  /// No description provided for @monitorAllJobs.
+  ///
+  /// In en, this message translates to:
+  /// **'All jobs'**
+  String get monitorAllJobs;
+
+  /// No description provided for @monitorNoActiveJobs.
+  ///
+  /// In en, this message translates to:
+  /// **'No active jobs'**
+  String get monitorNoActiveJobs;
 }
 
 class _AppLocalizationsDelegate

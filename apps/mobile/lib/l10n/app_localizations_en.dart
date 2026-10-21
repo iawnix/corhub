@@ -1527,4 +1527,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get monitorOpen => 'Open';
+
+  @override
+  String get monitorPartial => 'Partially completed';
+
+  @override
+  String get monitorStopped => 'Stopped';
+
+  @override
+  String get monitorIdle => 'Idle';
+
+  @override
+  String get monitorRetrying => 'Waiting to retry';
+
+  @override
+  String get monitorAllJobs => 'All jobs';
+
+  @override
+  String get monitorNoActiveJobs => 'No active jobs';
 }

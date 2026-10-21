@@ -602,5 +602,11 @@
   "monitorPartOf": "Part of",
   "monitorRequires": "Requires",
   "monitorAlternative": "Alternative to",
-  "monitorOpen": "Open"
+  "monitorOpen": "Open",
+  "monitorPartial": "Partially completed",
+  "monitorStopped": "Stopped",
+  "monitorIdle": "Idle",
+  "monitorRetrying": "Waiting to retry",
+  "monitorAllJobs": "All jobs",
+  "monitorNoActiveJobs": "No active jobs"
 }

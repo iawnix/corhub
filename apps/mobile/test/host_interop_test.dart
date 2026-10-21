@@ -9,6 +9,7 @@ import 'package:corhub/data/host_rpc_client.dart';
 import 'package:corhub/data/corhub_api.dart';
 import 'package:corhub/models/connection_settings.dart';
 import 'package:corhub/models/phone_model.dart';
+import 'package:corhub/models/host_monitor.dart';
 
 void main() {
   test(
@@ -93,9 +94,9 @@ void main() {
           session.sessionId,
           'monitor/overview',
         );
-        expect(overview['schema_version'], 'coragent-monitor/1');
-        expect(overview['task'], isNull);
-        expect((overview['jobs'] as Map)['items'], isA<List>());
+        expect(overview['schema_version'], 'coragent-monitor/2');
+        expect(MonitorOverview(overview).task, isNull);
+        expect((overview['jobs'] as Map)['active'], isA<List>());
         expect(await gateway.supportsFiles(), isTrue);
         final files = await gateway.listFiles('ts_001', 'inputs');
         expect(files.files.single.name, 'fixture.xyz');

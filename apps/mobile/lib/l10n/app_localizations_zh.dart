@@ -1450,4 +1450,22 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get monitorOpen => '进行中';
+
+  @override
+  String get monitorPartial => '部分完成';
+
+  @override
+  String get monitorStopped => '已停止';
+
+  @override
+  String get monitorIdle => '空闲';
+
+  @override
+  String get monitorRetrying => '等待重试';
+
+  @override
+  String get monitorAllJobs => '全部作业';
+
+  @override
+  String get monitorNoActiveJobs => '没有活动作业';
 }

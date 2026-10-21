@@ -287,7 +287,7 @@ class _MonitorPageState extends State<MonitorPage> with WidgetsBindingObserver {
     context.l10n.monitorHistory,
     (cursor) => request('monitor/tasks', {'limit': 30, 'cursor': ?cursor}),
     (data) => monitorItems(data['items']).map((row) {
-      final task = MonitorTask(row);
+      final task = MonitorTask.summary(row);
       return ListTile(
         contentPadding: EdgeInsets.zero,
         title: Text(task.title),
@@ -432,6 +432,8 @@ class _MonitorPageState extends State<MonitorPage> with WidgetsBindingObserver {
     final jobs = overview?.jobs ?? [];
     final related = task == null
         ? <MonitorJob>[]
+        : overview?.jobScope == 'task'
+        ? jobs
         : jobs.where((j) => j.taskId == task.id).toList();
     return Scaffold(
       appBar: TsGlassAppBar(
@@ -499,10 +501,19 @@ class _MonitorPageState extends State<MonitorPage> with WidgetsBindingObserver {
             if (overview == null && error == null)
               const Center(child: CircularProgressIndicator()),
             if (overview != null && jobsTab) ...[
-              if (jobs.isEmpty) Text(l.monitorJobsEmpty),
+              if (jobs.isEmpty)
+                Text(
+                  overview.totalJobs == 0
+                      ? l.monitorJobsEmpty
+                      : l.monitorNoActiveJobs,
+                ),
               ...jobs.map(jobRow),
-              if (overview.nextCursor != null)
-                TextButton(onPressed: allJobs, child: Text(l.monitorLoadMore)),
+              if (overview.totalJobs > 0)
+                TextButton(
+                  onPressed: () =>
+                      allJobs(task: overview.jobScope == 'task' ? task : null),
+                  child: Text(l.monitorAllJobs),
+                ),
             ],
             if (overview != null && !jobsTab) ...[
               if (task == null)
@@ -523,7 +534,7 @@ class _MonitorPageState extends State<MonitorPage> with WidgetsBindingObserver {
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                           const SizedBox(height: 10),
-                          stateLabel(task.state),
+                          stateLabel(overview.activityState),
                         ],
                       ),
                     ),
@@ -594,10 +605,18 @@ class _MonitorPageState extends State<MonitorPage> with WidgetsBindingObserver {
                     ),
                   ],
                 ),
-                if (related.isEmpty) Text(l.monitorJobsEmpty),
+                if (related.isEmpty)
+                  Text(
+                    overview.totalJobs == 0
+                        ? l.monitorJobsEmpty
+                        : l.monitorNoActiveJobs,
+                  ),
                 ...related.map(jobRow),
               ],
-              if (overview.controller['error'] != null)
+              if (const {
+                'error',
+                'attention_required',
+              }.contains(overview.continuationState))
                 TextButton.icon(
                   onPressed: health,
                   icon: const Icon(LucideIcons.circleAlert),
@@ -613,8 +632,14 @@ class _MonitorPageState extends State<MonitorPage> with WidgetsBindingObserver {
 
 IconData _stateIcon(String state) => switch (state) {
   'completed' || 'succeeded' || 'success' => LucideIcons.circleCheck,
-  'paused' => LucideIcons.pause,
-  'queued' || 'waiting' || 'pending' => LucideIcons.clock3,
+  'paused' || 'stopped' => LucideIcons.pause,
+  'partial' => LucideIcons.circleAlert,
+  'created' ||
+  'held' ||
+  'queued' ||
+  'waiting' ||
+  'pending' ||
+  'retrying' => LucideIcons.clock3,
   'blocked' || 'failed' || 'error' => LucideIcons.circleAlert,
   'cancelled' => LucideIcons.circleX,
   _ => LucideIcons.activity,
